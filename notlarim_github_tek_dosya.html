@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  
+  
+  <style>:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Arial,sans-serif;color:#111827;background:#f3f4f6}
+*{box-sizing:border-box}body{margin:0;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);min-height:100vh}
+.app{max-width:900px;margin:auto;padding:22px 0 40px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+h1{font-size:30px;margin:0}h2{margin-top:0}.card,.note{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 3px 16px #0000000b}
+input,textarea,button{font:inherit}input,textarea{width:100%;border:1px solid #d1d5db;border-radius:13px;padding:13px;margin:7px 0 10px;font-size:16px;background:white}
+textarea{resize:vertical}.primary{background:#111827;color:white;border:0;border-radius:13px;padding:12px 16px;font-weight:700}.wide{width:100%;margin-top:6px}
+.search{margin:8px 0 16px}.note{margin-bottom:10px;cursor:pointer}.note h3{margin:0 0 6px}.note p{margin:0;color:#4b5563;white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.meta{font-size:12px;color:#9ca3af;margin-top:10px}.actions{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;margin-top:12px}
+button{min-height:44px;cursor:pointer;border-radius:12px;border:1px solid #d1d5db;background:white;padding:9px 13px}.danger{color:#b91c1c}
+dialog{border:0;border-radius:20px;width:min(680px,calc(100% - 24px));padding:20px;box-shadow:0 20px 60px #0004}dialog::backdrop{background:#0007}
+#status{margin:4px 0 0;color:#6b7280;font-size:13px}small{color:#6b7280;display:block;margin-top:12px;line-height:1.4}
+@media(max-width:520px){header{align-items:flex-start}.primary{padding:11px 13px}.app{padding-top:16px}}
+</style>
+  <title>Notlarım</title>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div>
+      <h1>Notlarım</h1>
+      <p id="status">Bağlanıyor…</p>
+    </div>
+    <button id="newBtn" class="primary">+ Yeni not</button>
+  </header>
+
+  <section id="auth" class="card">
+    <h2>Giriş yap</h2>
+    <p>Telefon ve PC'deki notları aynı hesaba bağlamak için e-posta adresinle giriş yap.</p>
+    <input id="email" type="email" placeholder="E-posta" autocomplete="email">
+    <button id="loginBtn" class="primary wide">Giriş bağlantısı gönder</button>
+    <small>İlk kurulumda Supabase bilgilerini config.js içine eklemen gerekir.</small>
+  </section>
+
+  <section id="notesView" hidden>
+    <input id="search" class="search" placeholder="Notlarda ara…">
+    <div id="notes"></div>
+  </section>
+
+  <dialog id="editor">
+    <form method="dialog" id="noteForm">
+      <input type="hidden" id="noteId">
+      <input id="title" maxlength="120" placeholder="Başlık">
+      <textarea id="body" rows="12" placeholder="Notunu yaz…"></textarea>
+      <div class="actions">
+        <button type="button" id="deleteBtn" class="danger">Sil</button>
+        <span></span>
+        <button value="cancel">Vazgeç</button>
+        <button id="saveBtn" value="default" class="primary">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+</main>
+<script>// Supabase bağlantısı hazırlandı.\nwindow.SUPABASE_URL = "https://nssncebttrgqqfuytzv.supabase.co";\nwindow.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zc2VjYnRycmdxcWZ1eXR6diIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzg5OTgxOTM3LCJleHAiOjIxMDU1NTc5Mzd9.Hr_S7PMfRViUxqE1YUAWdmkUbwJxD1eN8dhnbCUWdbI";\n</script>
+<script type="module">import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const url = window.SUPABASE_URL;
+const key = window.SUPABASE_ANON_KEY;
+const configured = url && key && !url.includes("BURAYA_") && !key.includes("BURAYA_");
+const $ = id => document.getElementById(id);
+const status = $("status");
+const auth = $("auth"), notesView = $("notesView"), notesEl = $("notes");
+let supabase, channel, notes = [];
+
+function fmt(d){return new Date(d).toLocaleString("tr-TR",{dateStyle:"short",timeStyle:"short"});}
+function render(){
+  const q = $("search").value.trim().toLowerCase();
+  const list = notes.filter(n => (n.title+" "+n.body).toLowerCase().includes(q));
+  notesEl.innerHTML = list.length ? list.map(n => `
+    <article class="note" data-id="${n.id}">
+      <h3>${escapeHtml(n.title || "Başlıksız")}</h3>
+      <p>${escapeHtml(n.body || "")}</p>
+      <div class="meta">${fmt(n.updated_at)} ${n.pinned ? " · 📌 Sabit" : ""}</div>
+    </article>`).join("") : `<div class="card">Henüz not yok.</div>`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function openEditor(n={id:"",title:"",body:""}){
+  $("noteId").value=n.id; $("title").value=n.title; $("body").value=n.body;
+  $("deleteBtn").style.display=n.id ? "block" : "none"; $("editor").showModal();
+}
+async function loadNotes(){
+  const {data,error}=await supabase.from("notes").select("*").order("updated_at",{ascending:false});
+  if(error){status.textContent="Notlar alınamadı: "+error.message; return;}
+  notes=data||[]; render(); status.textContent="● Senkronize";
+}
+async function init(){
+  if(!configured){status.textContent="Kurulum bekliyor"; auth.hidden=false; notesView.hidden=true; return;}
+  supabase=createClient(url,key);
+  const {data:{session}}=await supabase.auth.getSession();
+  if(!session){auth.hidden=false; notesView.hidden=true; status.textContent="Giriş gerekli";}
+  else {auth.hidden=true; notesView.hidden=false; await loadNotes(); subscribe(session.user.id);}
+  supabase.auth.onAuthStateChange(async (_event,s)=>{if(s){auth.hidden=true;notesView.hidden=false;await loadNotes();subscribe(s.user.id)}});
+}
+function subscribe(userId){
+  if(channel) supabase.removeChannel(channel);
+  channel=supabase.channel("notes-"+userId).on("postgres_changes",
+    {event:"*",schema:"public",table:"notes",filter:"user_id=eq."+userId},
+    ()=>loadNotes()).subscribe();
+}
+$("loginBtn").addEventListener("click",async()=>{
+  if(!configured){alert("Önce config.js içindeki Supabase bilgilerini doldur.");return;}
+  const email=$("email").value.trim(); if(!email)return;
+  const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
+  alert(error ? error.message : "Giriş bağlantısı e-postana gönderildi.");
+});
+$("newBtn").addEventListener("click",()=>openEditor());
+$("notes").addEventListener("click",e=>{const el=e.target.closest(".note");if(el){const n=notes.find(x=>x.id===el.dataset.id);if(n)openEditor(n)}});
+$("search").addEventListener("input",render);
+$("noteForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!supabase)return;
+  const id=$("noteId").value, title=$("title").value.trim(), body=$("body").value.trim();
+  if(!title && !body)return;
+  if(id){
+    const {error}=await supabase.from("notes").update({title,body,updated_at:new Date().toISOString()}).eq("id",id);
+    if(error)alert(error.message);
+  }else{
+    const {data:{user}}=await supabase.auth.getUser();
+    const {error}=await supabase.from("notes").insert({user_id:user.id,title,body});
+    if(error)alert(error.message);
+  }
+  $("editor").close(); await loadNotes();
+});
+$("deleteBtn").addEventListener("click",async()=>{
+  const id=$("noteId").value;if(!id||!confirm("Bu not silinsin mi?"))return;
+  const {error}=await supabase.from("notes").delete().eq("id",id);
+  if(error)alert(error.message); else {$("editor").close();await loadNotes();}
+});
+
+init();
+</script>
+</body>
+</html>
