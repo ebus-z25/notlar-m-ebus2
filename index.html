@@ -1,0 +1,23 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notlarım</title><style>
+body{font-family:system-ui;margin:0;background:#f5f7fb;color:#172033}header{background:white;padding:16px 20px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between}main{max-width:850px;margin:20px auto;padding:0 15px}.top{display:flex;gap:8px}input,textarea{width:100%;padding:12px;border:1px solid #ccd;border-radius:10px;box-sizing:border-box;font:inherit}textarea{min-height:220px}button{padding:11px 15px;border:0;border-radius:10px;background:#111827;color:white;cursor:pointer}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:15px;margin:10px 0;cursor:pointer}.muted{color:#667;font-size:13px}dialog{border:0;border-radius:15px;width:min(650px,90vw)}.modal{padding:20px;display:grid;gap:10px}#login{max-width:400px;margin:70px auto;background:white;padding:25px;border-radius:15px}#app{display:none}.empty{text-align:center;padding:35px;color:#667}
+</style></head><body><header><b>📝 Notlarım</b><button id="logout">Çıkış</button></header>
+<section id="login"><h2>Giriş yap</h2><p class="muted">E-posta adresine giriş bağlantısı gönder.</p><input id="email" type="email" placeholder="E-posta"><button id="loginBtn">Giriş bağlantısı gönder</button><p id="loginStatus" class="muted"></p></section>
+<main id="app"><div class="top"><input id="search" placeholder="Notlarda ara..."><button id="newBtn">+ Yeni</button></div><div id="notes"></div></main>
+<dialog id="dlg"><div class="modal"><h2 id="dlgTitle">Yeni not</h2><input id="title" placeholder="Başlık"><textarea id="body" placeholder="Notunu yaz..."></textarea><div><button id="cancel">İptal</button> <button id="save">Kaydet</button></div><p id="saveStatus" class="muted"></p></div></dialog>
+<script type="module">
+import{createClient}from"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const sb=createClient("https://nssncebttrgqqfuytzv.supabase.co","PASTE_YOUR_ANON_KEY_HERE");
+let user=null,notes=[],edit=null;const $=x=>document.getElementById(x);
+function login(){ $("login").style.display="block";$("app").style.display="none"} function app(){ $("login").style.display="none";$("app").style.display="block"}
+function esc(s=""){return s.replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]))}
+async function load(){let r=await sb.from("notes").select("*").order("updated_at",{ascending:false});notes=r.data||[];render()}
+function render(){let q=$("search").value.toLowerCase(),a=notes.filter(n=>(n.title+" "+n.body).toLowerCase().includes(q));$("notes").innerHTML=a.length?a.map(n=>`<article class="card" data-id="${n.id}"><b>${esc(n.title||"Başlıksız")}</b><div>${esc((n.body||"").slice(0,180))}</div><small class="muted">${new Date(n.updated_at).toLocaleString("tr-TR")}</small></article>`).join(""):"<div class=empty>Henüz not yok.</div>";document.querySelectorAll(".card").forEach(x=>x.onclick=()=>openEdit(x.dataset.id))}
+function openNew(){edit=null;$("dlgTitle").textContent="Yeni not";$("title").value="";$("body").value="";$("dlg").showModal()}
+function openEdit(id){let n=notes.find(x=>x.id===id);edit=n;$("dlgTitle").textContent="Notu düzenle";$("title").value=n.title;$("body").value=n.body;$("dlg").showModal()}
+$("newBtn").onclick=openNew;$("cancel").onclick=()=>$("dlg").close();$("search").oninput=render;
+$("save").onclick=async()=>{let d={title:$("title").value.trim(),body:$("body").value,updated_at:new Date().toISOString()},r=edit?await sb.from("notes").update(d).eq("id",edit.id):await sb.from("notes").insert({...d,user_id:user.id});if(r.error){$("saveStatus").textContent=r.error.message;return}$("dlg").close();load()};
+$("loginBtn").onclick=async()=>{let email=$("email").value.trim();let r=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});$("loginStatus").textContent=r.error?r.error.message:"E-posta gönderildi."};
+$("logout").onclick=()=>sb.auth.signOut();
+sb.auth.onAuthStateChange(async(e,s)=>{user=s?.user||null;if(user){app();load()}else login()});
+let s=(await sb.auth.getSession()).data.session;if(s){user=s.user;app();load()}else login();
+</script></body></html>
