@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notlarım</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    .login-box h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .login-box p {
+      text-align: center;
+      color: #666;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      outline: none;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #555;
+    }
+
+    .login-box button,
+    .primary-btn {
+      width: 100%;
+      border: 0;
+      background: #222;
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .login-box button:hover,
+    .primary-btn:hover {
+      background: #000;
+    }
+
+    .error {
+      color: #c62828;
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .success {
+      color: #2e7d32;
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .app {
+      display: none;
+      min-height: 100vh;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid #ddd;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logout-btn {
+      border: 1px solid #ddd;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .search {
+      flex: 1;
+    }
+
+    .new-btn {
+      border: 0;
+      background: #222;
+      color: white;
+      padding: 0 18px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .note {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+      cursor: pointer;
+      min-height: 150px;
+    }
+
+    .note h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .note p {
+      color: #666;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .note-date {
+      color: #999;
+      font-size: 12px;
+      margin-top: 15px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      padding: 50px 20px;
+      grid-column: 1 / -1;
+    }
+
+    dialog {
+      border: 0;
+      border-radius: 16px;
+      width: min(600px, 92%);
+      padding: 0;
+      box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+    }
+
+    dialog::backdrop {
+      background: rgba(0,0,0,0.45);
+    }
+
+    .dialog-content {
+      padding: 22px;
+    }
+
+    .dialog-content h2 {
+      margin-top: 0;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    textarea {
+      min-height: 250px;
+      resize: vertical;
+    }
+
+    .dialog-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .dialog-buttons button {
+      flex: 1;
+      padding: 11px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .cancel-btn {
+      background: white;
+      border: 1px solid #ddd;
+    }
+
+    .save-btn {
+      background: #222;
+      color: white;
+      border: 0;
+    }
+
+    .delete-btn {
+      background: #c62828;
+      color: white;
+      border: 0;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 12px;
+      }
+
+      .container {
+        padding: 12px;
+      }
+
+      .top-bar {
+        flex-direction: column;
+      }
+
+      .new-btn {
+        padding: 12px;
+      }
+
+      .header-right span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- GİRİŞ EKRANI -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h1>📝 Notlarım</h1>
+      <p>E-posta adresinle giriş bağlantısı gönder.</p>
+
+      <input
+        id="emailInput"
+        type="email"
+        placeholder="E-posta adresin"
+        autocomplete="email"
+      >
+
+      <button id="loginButton">
+        Giriş bağlantısı gönder
+      </button>
+
+      <div id="loginMessage"></div>
+    </div>
+  </div>
+
+
+  <!-- UYGULAMA -->
+  <div id="app" class="app">
+
+    <header>
+      <h1>📝 Notlarım</h1>
+
+      <div class="header-right">
+        <span id="userEmail"></span>
+        <button id="logoutButton" class="logout-btn">
+          Çıkış
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <div class="top-bar">
+        <input
+          id="searchInput"
+          class="search"
+          type="text"
+          placeholder="Notlarda ara..."
+        >
+
+        <button id="newNoteButton" class="new-btn">
+          + Yeni not
+        </button>
+      </div>
+
+      <div id="notesContainer" class="notes">
+        <div class="empty">Notlar yükleniyor...</div>
+      </div>
+
+    </main>
+  </div>
+
+
+  <!-- NOT PENCERESİ -->
+  <dialog id="noteDialog">
+
+    <div class="dialog-content">
+
+      <h2 id="dialogTitle">
+        Yeni Not
+      </h2>
+
+      <div class="field">
+        <label for="noteTitle">Başlık</label>
+
+        <input
+          id="noteTitle"
+          type="text"
+          placeholder="Not başlığı"
+        >
+      </div>
+
+      <div class="field">
+        <label for="noteBody">Not</label>
+
+        <textarea
+          id="noteBody"
+          placeholder="Notunu buraya yaz..."
+        ></textarea>
+      </div>
+
+      <div class="dialog-buttons">
+
+        <button
+          id="cancelButton"
+          class="cancel-btn"
+        >
+          İptal
+        </button>
+
+        <button
+          id="deleteButton"
+          class="delete-btn"
+          style="display:none;"
+        >
+          Sil
+        </button>
+
+        <button
+          id="saveButton"
+          class="save-btn"
+        >
+          Kaydet
+        </button>
+
+      </div>
+
+      <div id="noteMessage"></div>
+
+    </div>
+
+  </dialog>
+
+
+  <script type="module">
+
+    import { createClient } from
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+
+    /* SUPABASE */
+
+    const SUPABASE_URL =
+      "https://nssncebttrgqqfuytzv.supabase.co";
+
+    const SUPABASE_ANON_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zc2VjYnRycmdxcWZ1eXR6diIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzg5OTgxOTM3LCJleHAiOjIxMDU1NTc5Mzd9.Hr_S7PMfRViUxqE1YUAWdmkUbwJxD1eN8dhnbCUWdbI";
+
+
+    const supabase =
+      createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+
+    /* ELEMENTLER */
+
+    const loginScreen =
+      document.getElementById("loginScreen");
+
+    const app =
+      document.getElementById("app");
+
+    const emailInput =
+      document.getElementById("emailInput");
+
+    const loginButton =
+      document.getElementById("loginButton");
+
+    const loginMessage =
+      document.getElementById("loginMessage");
+
+    const logoutButton =
+      document.getElementById("logoutButton");
+
+    const userEmail =
+      document.getElementById("userEmail");
+
+    const searchInput =
+      document.getElementById("searchInput");
+
+    const newNoteButton =
+      document.getElementById("newNoteButton");
+
+    const notesContainer =
+      document.getElementById("notesContainer");
+
+    const noteDialog =
+      document.getElementById("noteDialog");
+
+    const dialogTitle =
+      document.getElementById("dialogTitle");
+
+    const noteTitle =
+      document.getElementById("noteTitle");
+
+    const noteBody =
+      document.getElementById("noteBody");
+
+    const cancelButton =
+      document.getElementById("cancelButton");
+
+    const deleteButton =
+      document.getElementById("deleteButton");
+
+    const saveButton =
+      document.getElementById("saveButton");
+
+    const noteMessage =
+      document.getElementById("noteMessage");
+
+
+    let currentUser = null;
+    let currentNoteId = null;
+    let allNotes = [];
+
+
+    /* GİRİŞ BAĞLANTISI */
+
+    loginButton.addEventListener("click", async () => {
+
+      const email =
+        emailInput.value.trim();
+
+      loginMessage.className = "";
+      loginMessage.textContent = "";
+
+      if (!email) {
+        loginMessage.className = "error";
+        loginMessage.textContent =
+          "Lütfen e-posta adresini yaz.";
+        return;
+      }
+
+      loginButton.disabled = true;
+      loginButton.textContent =
+        "Gönderiliyor...";
+
+      const { error } =
+        await supabase.auth.signInWithOtp({
+
+          email: email,
+
+          options: {
+            emailRedirectTo:
+              window.location.href
+          }
+
+        });
+
+
+      loginButton.disabled = false;
+      loginButton.textContent =
+        "Giriş bağlantısı gönder";
+
+
+      if (error) {
+
+        console.error(error);
+
+        loginMessage.className = "error";
+
+        loginMessage.textContent =
+          "Hata: " + error.message;
+
+        return;
+      }
+
+
+      loginMessage.className =
+        "success";
+
+      loginMessage.textContent =
+        "Giriş bağlantısı e-posta adresine gönderildi.";
+    });
+
+
+    /* OTURUMU KONTROL ET */
+
+    async function checkSession() {
+
+      const {
+        data,
+        error
+      } =
+        await supabase.auth.getSession();
+
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+
+      if (data.session) {
+
+        currentUser =
+          data.session.user;
+
+        showApp();
+
+      } else {
+
+        showLogin();
+      }
+    }
+
+
+    function showLogin() {
+
+      loginScreen.style.display =
+        "flex";
+
+      app.style.display =
+        "none";
+    }
+
+
+    async function showApp() {
+
+      loginScreen.style.display =
+        "none";
+
+      app.style.display =
+        "block";
+
+      userEmail.textContent =
+        currentUser.email || "";
+
+      await loadNotes();
+    }
+
+
+    /* OTURUM DEĞİŞİKLİĞİ */
+
+    supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+
+        if (session) {
+
+          currentUser =
+            session.user;
+
+          await showApp();
+
+        } else {
+
+          currentUser = null;
+
+          showLogin();
+        }
+
+      }
+    );
+
+
+    /* ÇIKIŞ */
+
+    logoutButton.addEventListener(
+      "click",
+      async () => {
+
+        await supabase.auth.signOut();
+
+      }
+    );
+
+
+    /* NOTLARI GETİR */
+
+    async function loadNotes() {
+
+      notesContainer.innerHTML =
+        '<div class="empty">Notlar yükleniyor...</div>';
+
+
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from("notes")
+          .select("*")
+          .order("updated_at", {
+            ascending: false
+          });
+
+
+      if (error) {
+
+        console.error(error);
+
+        notesContainer.innerHTML =
+          `<div class="empty">Notlar yüklenirken hata oluştu:<br>${escapeHtml(error.message)}</div>`;
+
+        return;
+      }
+
+
+      allNotes =
+        data || [];
+
+      renderNotes();
+    }
+
+
+    /* NOTLARI GÖSTER */
+
+    function renderNotes() {
+
+      const search =
+        searchInput.value
+          .trim()
+          .toLowerCase();
+
+
+      const filtered =
+        allNotes.filter(note => {
+
+          const title =
+            (note.title || "")
+              .toLowerCase();
+
+          const body =
+            (note.body || "")
+              .toLowerCase();
+
+          return (
+            title.includes(search) ||
+            body.includes(search)
+          );
+
+        });
+
+
+      if (!filtered.length) {
+
+        notesContainer.innerHTML =
+          '<div class="empty">Henüz not yok.</div>';
+
+        return;
+      }
+
+
+      notesContainer.innerHTML =
+        "";
+
+
+      filtered.forEach(note => {
+
+        const card =
+          document.createElement("div");
+
+        card.className =
+          "note";
+
+
+        const title =
+          document.createElement("h3");
+
+        title.textContent =
+          note.title || "Başlıksız";
+
+
+        const body =
+          document.createElement("p");
+
+        body.textContent =
+          note.body || "";
+
+
+        const date =
+          document.createElement("div");
+
+        date.className =
+          "note-date";
+
+        date.textContent =
+          formatDate(note.updated_at);
+
+
+        card.appendChild(title);
+        card.appendChild(body);
+        card.appendChild(date);
+
+
+        card.addEventListener(
+          "click",
+          () => openEditNote(note)
+        );
+
+
+        notesContainer.appendChild(card);
+
+      });
+
+    }
+
+
+    searchInput.addEventListener(
+      "input",
+      renderNotes
+    );
+
+
+    /* YENİ NOT */
+
+    newNoteButton.addEventListener(
+      "click",
+      () => {
+
+        currentNoteId =
+          null;
+
+        dialogTitle.textContent =
+          "Yeni Not";
+
+        noteTitle.value =
+          "";
+
+        noteBody.value =
+          "";
+
+        deleteButton.style.display =
+          "none";
+
+        noteMessage.textContent =
+          "";
+
+        noteDialog.showModal();
+
+        noteTitle.focus();
+
+      }
+    );
+
+
+    /* NOT DÜZENLE */
+
+    function openEditNote(note) {
+
+      currentNoteId =
+        note.id;
+
+      dialogTitle.textContent =
+        "Notu Düzenle";
+
+      noteTitle.value =
+        note.title || "";
+
+      noteBody.value =
+        note.body || "";
+
+      deleteButton.style.display =
+        "block";
+
+      noteMessage.textContent =
+        "";
+
+      noteDialog.showModal();
+
+    }
+
+
+    /* İPTAL */
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        noteDialog.close();
+
+      }
+    );
+
+
+    /* KAYDET */
+
+    saveButton.addEventListener(
+      "click",
+      async () => {
+
+        const title =
+          noteTitle.value.trim();
+
+        const body =
+          noteBody.value.trim();
+
+
+        if (!title && !body) {
+
+          noteMessage.className =
+            "error";
+
+          noteMessage.textContent =
+            "Not boş olamaz.";
+
+          return;
+        }
+
+
+        saveButton.disabled =
+          true;
+
+        saveButton.textContent =
+          "Kaydediliyor...";
+
+
+        let result;
+
+
+        if (currentNoteId) {
+
+          result =
+            await supabase
+              .from("notes")
+              .update({
+
+                title: title,
+
+                body: body,
+
+                updated_at:
+                  new Date().toISOString()
+
+              })
+              .eq(
+                "id",
+                currentNoteId
+              );
+
+        } else {
+
+          result =
+            await supabase
+              .from("notes")
+              .insert({
+
+                user_id:
+                  currentUser.id,
+
+                title: title,
+
+                body: body
+
+              });
+
+        }
+
+
+        saveButton.disabled =
+          false;
+
+        saveButton.textContent =
+          "Kaydet";
+
+
+        if (result.error) {
+
+          console.error(
+            result.error
+          );
+
+          noteMessage.className =
+            "error";
+
+          noteMessage.textContent =
+            "Hata: " +
+            result.error.message;
+
+          return;
+        }
+
+
+        noteDialog.close();
+
+        await loadNotes();
+
+      }
+    );
+
+
+    /* SİL */
+
+    deleteButton.addEventListener(
+      "click",
+      async () => {
+
+        if (!currentNoteId)
+          return;
+
+
+        const confirmed =
+          confirm(
+            "Bu not silinsin mi?"
+          );
+
+
+        if (!confirmed)
+          return;
+
+
+        deleteButton.disabled =
+          true;
+
+        deleteButton.textContent =
+          "Siliniyor...";
+
+
+        const {
+          error
+        } =
+          await supabase
+            .from("notes")
+            .delete()
+            .eq(
+              "id",
+              currentNoteId
+            );
+
+
+        deleteButton.disabled =
+          false;
+
+        deleteButton.textContent =
+          "Sil";
+
+
+        if (error) {
+
+          console.error(error);
+
+          noteMessage.className =
+            "error";
+
+          noteMessage.textContent =
+            "Hata: " +
+            error.message;
+
+          return;
+        }
+
+
+        noteDialog.close();
+
+        await loadNotes();
+
+      }
+    );
+
+
+    /* TARİH */
+
+    function formatDate(date) {
+
+      if (!date)
+        return "";
+
+      return new Date(date)
+        .toLocaleString(
+          "tr-TR",
+          {
+            dateStyle: "short",
+            timeStyle: "short"
+          }
+        );
+
+    }
+
+
+    /* HTML GÜVENLİĞİ */
+
+    function escapeHtml(text) {
+
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    }
+
+
+    /* BAŞLAT */
+
+    checkSession();
+
+  </script>
+
+</body>
+</html>
