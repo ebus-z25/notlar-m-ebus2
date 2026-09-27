@@ -6,7 +6,7 @@ body{font-family:system-ui;margin:0;background:#f5f7fb;color:#172033}header{back
 <dialog id="dlg"><div class="modal"><h2 id="dlgTitle">Yeni not</h2><input id="title" placeholder="Başlık"><textarea id="body" placeholder="Notunu yaz..."></textarea><div><button id="cancel">İptal</button> <button id="save">Kaydet</button></div><p id="saveStatus" class="muted"></p></div></dialog>
 <script type="module">
 import{createClient}from"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-const sb=createClient("https://nssncebttrgqqfuytzv.supabase.co","PASTE_YOUR_ANON_KEY_HERE");
+const sb=createClient("https://nssncebttrgqqfuytzv.supabase.co",sb_publishable_j9fNp4tjA1cqgXYxYRnc9w_6EJbyQSK);
 let user=null,notes=[],edit=null;const $=x=>document.getElementById(x);
 function login(){ $("login").style.display="block";$("app").style.display="none"} function app(){ $("login").style.display="none";$("app").style.display="block"}
 function esc(s=""){return s.replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]))}
