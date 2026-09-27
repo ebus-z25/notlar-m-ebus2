@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notlarım</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f3f4f6;
+  color:#111827;
+}
+
+header{
+  background:#111827;
+  color:white;
+  padding:18px;
+}
+
+header .top{
+  max-width:850px;
+  margin:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+main{
+  max-width:850px;
+  margin:25px auto;
+  padding:0 15px;
+}
+
+.card{
+  background:white;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 4px 18px #00000012;
+  margin-bottom:15px;
+}
+
+input,textarea,button{
+  font:inherit;
+}
+
+input,textarea{
+  width:100%;
+  padding:13px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  margin:7px 0 12px;
+}
+
+textarea{
+  min-height:220px;
+  resize:vertical;
+}
+
+button{
+  border:0;
+  border-radius:10px;
+  padding:12px 16px;
+  cursor:pointer;
+}
+
+.primary{
+  background:#111827;
+  color:white;
+}
+
+.danger{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.status{
+  margin-top:10px;
+  color:#6b7280;
+  font-size:14px;
+}
+
+.note{
+  background:white;
+  padding:17px;
+  border-radius:14px;
+  margin-bottom:10px;
+  cursor:pointer;
+  box-shadow:0 2px 10px #0000000b;
+}
+
+.note h3{
+  margin:0 0 8px;
+}
+
+.note p{
+  margin:0;
+  color:#4b5563;
+  white-space:pre-wrap;
+}
+
+.note small{
+  display:block;
+  margin-top:10px;
+  color:#9ca3af;
+}
+
+.row{
+  display:flex;
+  gap:10px;
+}
+
+.row>*{
+  flex:1;
+}
+
+dialog{
+  border:0;
+  border-radius:18px;
+  width:min(650px,92%);
+  padding:22px;
+  box-shadow:0 20px 70px #0005;
+}
+
+dialog::backdrop{
+  background:#0008;
+}
+
+.actions{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+#loginBox{
+  max-width:450px;
+  margin:70px auto;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="top">
+    <strong>📝 Notlarım</strong>
+    <button id="logoutBtn" class="hidden">Çıkış</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- GİRİŞ -->
+  <section id="loginBox" class="card">
+    <h2>Giriş yap</h2>
+
+    <p>
+      E-posta adresini yaz. Sana giriş bağlantısı göndereceğiz.
+    </p>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="E-posta adresin"
+      autocomplete="email"
+    >
+
+    <button id="loginBtn" class="primary">
+      Giriş bağlantısı gönder
+    </button>
+
+    <div id="loginStatus" class="status"></div>
+  </section>
+
+
+  <!-- UYGULAMA -->
+  <section id="appBox" class="hidden">
+
+    <div class="card">
+
+      <div class="row">
+        <input
+          id="search"
+          type="text"
+          placeholder="🔎 Notlarda ara..."
+        >
+
+        <button id="newBtn" class="primary">
+          + Yeni not
+        </button>
+      </div>
+
+    </div>
+
+    <div id="notes"></div>
+
+  </section>
+
+</main>
+
+
+<!-- NOT EDİTÖRÜ -->
+
+<dialog id="editor">
+
+  <h2 id="editorTitle">Yeni Not</h2>
+
+  <input
+    id="noteTitle"
+    type="text"
+    placeholder="Başlık"
+  >
+
+  <textarea
+    id="noteBody"
+    placeholder="Notunu yaz..."
+  ></textarea>
+
+  <div class="actions">
+
+    <button id="deleteBtn" class="danger hidden">
+      Sil
+    </button>
+
+    <div>
+      <button id="cancelBtn">
+        Vazgeç
+      </button>
+
+      <button id="saveBtn" class="primary">
+        Kaydet
+      </button>
+    </div>
+
+  </div>
+
+  <div id="saveStatus" class="status"></div>
+
+</dialog>
+
+
+<script type="module">
+
+import {
+  createClient
+} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+
+/* SUPABASE */
+
+const SUPABASE_URL =
+"https://nssncebttrgqqfuytzv.supabase.co";
+
+const SUPABASE_KEY =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zc2VjYnRycmdxcWZ1eXR6diIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzg5OTgxOTM3LCJleHAiOjIxMDU1NTc5Mzd9.Hr_S7PMfRViUxqE1YUAWdmkUbwJxD1eN8dhnbCUWdbI";
+
+const supabase =
+createClient(SUPABASE_URL,SUPABASE_KEY);
+
+
+/* ELEMENTLER */
+
+const loginBox =
+document.getElementById("loginBox");
+
+const appBox =
+document.getElementById("appBox");
+
+const loginBtn =
+document.getElementById("loginBtn");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const emailInput =
+document.getElementById("email");
+
+const loginStatus =
+document.getElementById("loginStatus");
+
+const notesContainer =
+document.getElementById("notes");
+
+const searchInput =
+document.getElementById("search");
+
+const newBtn =
+document.getElementById("newBtn");
+
+const editor =
+document.getElementById("editor");
+
+const editorTitle =
+document.getElementById("editorTitle");
+
+const noteTitle =
+document.getElementById("noteTitle");
+
+const noteBody =
+document.getElementById("noteBody");
+
+const saveBtn =
+document.getElementById("saveBtn");
+
+const cancelBtn =
+document.getElementById("cancelBtn");
+
+const deleteBtn =
+document.getElementById("deleteBtn");
+
+const saveStatus =
+document.getElementById("saveStatus");
+
+
+let currentUser = null;
+let currentNoteId = null;
+let notes = [];
+
+
+/* GÜVENLİ HTML */
+
+function escapeHtml(text){
+
+  return String(text || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+
+/* TARİH */
+
+function formatDate(date){
+
+  if(!date) return "";
+
+  return new Date(date).toLocaleString(
+    "tr-TR",
+    {
+      dateStyle:"short",
+      timeStyle:"short"
+    }
+  );
+}
+
+
+/* GİRİŞ EKRANI */
+
+function showLogin(){
+
+  loginBox.classList.remove("hidden");
+
+  appBox.classList.add("hidden");
+
+  logoutBtn.classList.add("hidden");
+
+}
+
+
+/* UYGULAMA EKRANI */
+
+function showApp(){
+
+  loginBox.classList.add("hidden");
+
+  appBox.classList.remove("hidden");
+
+  logoutBtn.classList.remove("hidden");
+
+}
+
+
+/* GİRİŞ LİNKİ */
+
+loginBtn.addEventListener("click",async()=>{
+
+  const email =
+    emailInput.value.trim();
+
+  if(!email){
+
+    loginStatus.textContent =
+      "Lütfen e-posta adresini yaz.";
+
+    return;
+  }
+
+  loginBtn.disabled = true;
+
+  loginStatus.textContent =
+    "Giriş bağlantısı gönderiliyor...";
+
+  try{
+
+    const {error} =
+      await supabase.auth.signInWithOtp({
+
+        email:email,
+
+        options:{
+          emailRedirectTo:window.location.href
+        }
+
+      });
+
+
+    if(error){
+
+      loginStatus.textContent =
+        "Hata: " + error.message;
+
+      console.error(error);
+
+    }else{
+
+      loginStatus.textContent =
+        "✅ Giriş bağlantısı e-posta adresine gönderildi. Gelen kutunu kontrol et.";
+
+    }
+
+  }catch(error){
+
+    loginStatus.textContent =
+      "Bağlantı hatası: " + error.message;
+
+    console.error(error);
+
+  }
+
+  loginBtn.disabled = false;
+
+});
+
+
+/* ÇIKIŞ */
+
+logoutBtn.addEventListener("click",async()=>{
+
+  await supabase.auth.signOut();
+
+});
+
+
+/* NOTLARI GETİR */
+
+async function loadNotes(){
+
+  notesContainer.innerHTML =
+    '<div class="card">Notlar yükleniyor...</div>';
+
+  const {data,error} =
+    await supabase
+      .from("notes")
+      .select("*")
+      .order("updated_at",{ascending:false});
+
+
+  if(error){
+
+    notesContainer.innerHTML =
+      '<div class="card">Notlar alınamadı: '
+      + escapeHtml(error.message)
+      + '</div>';
+
+    console.error(error);
+
+    return;
+  }
+
+
+  notes = data || [];
+
+  renderNotes();
+
+}
+
+
+/* NOTLARI GÖSTER */
+
+function renderNotes(){
+
+  const search =
+    searchInput.value
+      .trim()
+      .toLowerCase();
+
+
+  const filtered =
+    notes.filter(note=>{
+
+      const text =
+        (
+          (note.title || "") +
+          " " +
+          (note.body || "")
+        ).toLowerCase();
+
+      return text.includes(search);
+
+    });
+
+
+  if(filtered.length === 0){
+
+    notesContainer.innerHTML =
+      '<div class="card">Henüz not yok.</div>';
+
+    return;
+
+  }
+
+
+  notesContainer.innerHTML =
+    filtered.map(note=>`
+
+      <article
+        class="note"
+        data-id="${escapeHtml(note.id)}"
+      >
+
+        <h3>
+          ${escapeHtml(note.title || "Başlıksız")}
+        </h3>
+
+        <p>
+          ${escapeHtml(note.body || "")}
+        </p>
+
+        <small>
+          ${formatDate(note.updated_at)}
+        </small>
+
+      </article>
+
+    `).join("");
+
+
+  document
+    .querySelectorAll(".note")
+    .forEach(element=>{
+
+      element.addEventListener("click",()=>{
+
+        const id =
+          element.dataset.id;
+
+        openEditor(id);
+
+      });
+
+    });
+
+}
+
+
+/* ARAMA */
+
+searchInput.addEventListener(
+  "input",
+  renderNotes
+);
+
+
+/* YENİ NOT */
+
+newBtn.addEventListener("click",()=>{
+
+  currentNoteId = null;
+
+  editorTitle.textContent =
+    "Yeni Not";
+
+  noteTitle.value = "";
+
+  noteBody.value = "";
+
+  deleteBtn.classList.add("hidden");
+
+  saveStatus.textContent = "";
+
+  editor.showModal();
+
+});
+
+
+/* NOT AÇ */
+
+function openEditor(id){
+
+  const note =
+    notes.find(n=>String(n.id) === String(id));
+
+  if(!note) return;
+
+  currentNoteId = note.id;
+
+  editorTitle.textContent =
+    "Notu Düzenle";
+
+  noteTitle.value =
+    note.title || "";
+
+  noteBody.value =
+    note.body || "";
+
+  deleteBtn.classList.remove("hidden");
+
+  saveStatus.textContent = "";
+
+  editor.showModal();
+
+}
+
+
+/* VAZGEÇ */
+
+cancelBtn.addEventListener("click",()=>{
+
+  editor.close();
+
+});
+
+
+/* KAYDET */
+
+saveBtn.addEventListener("click",async()=>{
+
+  const title =
+    noteTitle.value.trim();
+
+  const body =
+    noteBody.value.trim();
+
+
+  if(!title && !body){
+
+    saveStatus.textContent =
+      "Not boş bırakılamaz.";
+
+    return;
+
+  }
+
+
+  saveBtn.disabled = true;
+
+  saveStatus.textContent =
+    "Kaydediliyor...";
+
+
+  try{
+
+    let result;
+
+
+    if(currentNoteId){
+
+      result =
+        await supabase
+          .from("notes")
+          .update({
+
+            title:title,
+
+            body:body,
+
+            updated_at:
+              new Date().toISOString()
+
+          })
+          .eq("id",currentNoteId);
+
+    }else{
+
+      result =
+        await supabase
+          .from("notes")
+          .insert({
+
+            user_id:currentUser.id,
+
+            title:title,
+
+            body:body
+
+          });
+
+    }
+
+
+    if(result.error){
+
+      saveStatus.textContent =
+        "Hata: " +
+        result.error.message;
+
+      return;
+
+    }
+
+
+    editor.close();
+
+    await loadNotes();
+
+
+  }catch(error){
+
+    saveStatus.textContent =
+      "Hata: " +
+      error.message;
+
+    console.error(error);
+
+  }finally{
+
+    saveBtn.disabled = false;
+
+  }
+
+});
+
+
+/* SİL */
+
+deleteBtn.addEventListener("click",async()=>{
+
+  if(!currentNoteId) return;
+
+
+  const confirmed =
+    confirm("Bu not silinsin mi?");
+
+
+  if(!confirmed) return;
+
+
+  deleteBtn.disabled = true;
+
+
+  const {error} =
+    await supabase
+      .from("notes")
+      .delete()
+      .eq("id",currentNoteId);
+
+
+  if(error){
+
+    saveStatus.textContent =
+      "Silme hatası: " +
+      error.message;
+
+    deleteBtn.disabled = false;
+
+    return;
+
+  }
+
+
+  editor.close();
+
+  deleteBtn.disabled = false;
+
+  await loadNotes();
+
+});
+
+
+/* OTURUM DEĞİŞİKLİĞİ */
+
+supabase.auth.onAuthStateChange(
+  async(event,session)=>{
+
+    if(session){
+
+      currentUser =
+        session.user;
+
+      showApp();
+
+      await loadNotes();
+
+    }else{
+
+      currentUser = null;
+
+      showLogin();
+
+    }
+
+  }
+);
+
+
+/* İLK KONTROL */
+
+async function start(){
+
+  try{
+
+    const {
+      data,
+      error
+    } =
+      await supabase.auth.getSession();
+
+
+    if(error){
+
+      loginStatus.textContent =
+        "Bağlantı hatası: " +
+        error.message;
+
+      return;
+
+    }
+
+
+    if(data.session){
+
+      currentUser =
+        data.session.user;
+
+      showApp();
+
+      await loadNotes();
+
+    }else{
+
+      showLogin();
+
+    }
+
+  }catch(error){
+
+    loginStatus.textContent =
+      "Başlatma hatası: " +
+      error.message;
+
+    console.error(error);
+
+  }
+
+}
+
+
+start();
+
+</script>
+
+</body>
+</html>
